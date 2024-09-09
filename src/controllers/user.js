@@ -1,8 +1,52 @@
 import { User } from "../models";
 import * as Yup from "yup";
+import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 
 class UserController {
+  async login(req, res) {
+    try {
+      const schema = Yup.object().shape({
+        email: Yup.string()
+          .email("E-mail is invalid.")
+          .required("E-mail is mandatory."),
+        password: Yup.string().required("Password is mandatory."),
+      });
+
+      await schema.validate(req.body);
+
+      const user = await User.findOne({ where: { email: req.body.email } });
+      if (!user) {
+        return res
+          .status(401)
+          .json({ error: "E-mail or password are incorrect." });
+      }
+
+      const checkPassword = await bcrypt.compare(
+        req.body.password,
+        user.password_hash
+      );
+
+      if (!checkPassword) {
+        return res
+          .status(401)
+          .json({ error: "E-mail or password are incorrect." });
+      }
+
+      const token = jwt.sign({ id: user.id }, process.env.JWT_HASH, {
+        expiresIn: "30d",
+      });
+
+      const { id, name, email, avatar_url, created_at } = user;
+
+      return res
+        .status(200)
+        .json({ user: { id, name, email, avatar_url, created_at }, token });
+    } catch (error) {
+      return res.status(500).json({ error: error?.message });
+    }
+  }
+
   async create(req, res) {
     try {
       const schema = Yup.object().shape({
@@ -17,6 +61,8 @@ class UserController {
           .min(5, "Password should have more than 4 characters."),
       });
 
+      await schema.validate(req.body);
+
       const existedUser = await User.findOne({
         where: { email: req.body.email },
       });
@@ -24,8 +70,6 @@ class UserController {
       if (existedUser) {
         return res.status(400).json("User already exists.");
       }
-
-      await schema.validate(req.body);
 
       const hashPassword = await bcrypt.hash(req.body.password, 8);
 
