@@ -87,6 +87,22 @@ class UserController {
       return res.status(400).json({ error: error?.message });
     }
   }
+
+  async get(req, res) {
+    try {
+      if (!req.userId) {
+        return res.status(400).json({ error: "Id required." });
+      }
+      const user = await User.findOne({ where: { id: Number(req.userId) } });
+
+      if (!user) {
+        return res.status(404).json({ error: "User not found." });
+      }
+      return res.json(user);
+    } catch (error) {
+      return res.status(400).json({ error: error?.message });
+    }
+  }
 }
 
 export default new UserController();
