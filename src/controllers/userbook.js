@@ -1,4 +1,4 @@
-import { Book, UserBook, User } from "../models";
+import { Book, UserBook, User, Author } from "../models";
 import * as Yup from "yup";
 
 class UserBookController {
@@ -52,6 +52,11 @@ class UserBookController {
           // Para mostrar as informações dos respectivos livros.
           model: Book,
           as: "book",
+          include: {
+            model: Author,
+            as: "author",
+            attributes: ["name"],
+          },
         },
       });
       return res.status(200).json(userbooks);
